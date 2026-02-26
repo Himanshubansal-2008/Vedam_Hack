@@ -15,7 +15,7 @@ const Landing = () => {
 
     useEffect(() => {
         if (!isSignedIn || !user) return;
-        // Check if user has set up subjects
+
         const checkUser = async () => {
             try {
                 const { data } = await axios.post('http://localhost:5001/api/users/sync', {
@@ -24,7 +24,6 @@ const Landing = () => {
                 });
                 setRedirectTarget(data.hasSubjects ? '/dashboard' : '/setup');
             } catch {
-                // Default redirect if API not available
                 setRedirectTarget('/dashboard');
             }
         };

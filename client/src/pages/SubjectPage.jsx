@@ -32,9 +32,12 @@ const SubjectPage = () => {
     const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'study'
     const [studyTasks, setStudyTasks] = useState(null);
     const [generatingTasks, setGeneratingTasks] = useState(false);
+    const [studySets, setStudySets] = useState([]);
+    const [selectedStudySet, setSelectedStudySet] = useState(null);
     const [realSubjectId, setRealSubjectId] = useState(null); // DB UUID after first upload
     const [showFileSidebar, setShowFileSidebar] = useState(false);
     const [previewNote, setPreviewNote] = useState(null);
+    const [error, setError] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [isSpeakingEnabled, setIsSpeakingEnabled] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -124,6 +127,12 @@ const SubjectPage = () => {
                             role: msg.role,
                             content: msg.content
                         })));
+                    }
+
+                    // Fetch previous study sets
+                    const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${found.name}`);
+                    if (sSetsData.studySets) {
+                        setStudySets(sSetsData.studySets);
                     }
                 } else {
                     // Fallback demo data logic (same as before)
@@ -242,22 +251,16 @@ const SubjectPage = () => {
                 subjectName: subject?.name,
             });
             setStudyTasks(data);
-        } catch {
-            // Mock study tasks for demo
-            setStudyTasks({
-                mcqs: [
-                    { q: 'What is the time complexity of binary search?', options: ['O(n)', 'O(log n)', 'O(n²)', 'O(1)'], answer: 1 },
-                    { q: 'Which data structure uses LIFO ordering?', options: ['Queue', 'Stack', 'Heap', 'Graph'], answer: 1 },
-                    { q: 'What does BFS stand for?', options: ['Binary First Search', 'Breadth First Search', 'Back First Search', 'Balanced First Search'], answer: 1 },
-                    { q: 'Which sorting algorithm has the best average case?', options: ['Bubble Sort', 'Selection Sort', 'Merge Sort', 'Insertion Sort'], answer: 2 },
-                    { q: 'What is a linked list?', options: ['Array-based structure', 'Node-pointer-based structure', 'Hash structure', 'Tree structure'], answer: 1 },
-                ],
-                shortAnswers: [
-                    { q: 'Explain the difference between BFS and DFS.', model: 'BFS uses a queue and explores level-by-level, while DFS uses a stack (or recursion) and explores as deep as possible before backtracking.' },
-                    { q: 'What is dynamic programming?', model: 'A technique that solves complex problems by breaking them into overlapping subproblems, storing results to avoid recomputation.' },
-                    { q: 'Describe the concept of a hash collision and how it is handled.', model: 'A hash collision occurs when two keys hash to the same index. Common solutions are chaining (linked lists at each slot) and open addressing (probing for next open slot).' },
-                ]
-            });
+
+            // Refresh history
+            const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${subject?.name}`);
+            if (sSetsData.studySets) {
+                setStudySets(sSetsData.studySets);
+            }
+        } catch (err) {
+            console.error('Study task generation error:', err);
+            setError(err?.response?.data?.error || 'Failed to generate study tasks. Please ensure you have uploaded notes.');
+            setStudyTasks(null);
         } finally {
             setGeneratingTasks(false);
         }
@@ -324,14 +327,39 @@ const SubjectPage = () => {
                     </div>
 
                     <div className="history-list">
-                        <button className="history-item active">
+                        <button
+                            className={`history-item ${activeTab === 'chat' ? 'active' : ''}`}
+                            onClick={() => {
+                                setSelectedStudySet(null);
+                                setActiveTab('chat');
+                            }}
+                        >
                             <Sparkles size={16} />
-                            <span>Current Session</span>
+                            <span>Current Chat</span>
                         </button>
-                        {/* Future: Add list of archived sessions here */}
-                        <div className="history-empty-hint">
-                            Archive coming soon...
-                        </div>
+
+                        <div className="history-section-label">Previous Study Sets</div>
+                        {studySets.length === 0 && (
+                            <div className="history-empty-hint">No study sets yet</div>
+                        )}
+                        {studySets.map((set, idx) => (
+                            <button
+                                key={set.id}
+                                className={`history-item ${selectedStudySet?.id === set.id ? 'active' : ''}`}
+                                onClick={() => {
+                                    setSelectedStudySet(set);
+                                    setStudyTasks(set.data);
+                                    setActiveTab('study');
+                                    setError('');
+                                }}
+                            >
+                                <BookOpen size={16} />
+                                <div className="history-item-info">
+                                    <span>Study Set {studySets.length - idx}</span>
+                                    <small>{new Date(set.createdAt).toLocaleDateString()}</small>
+                                </div>
+                            </button>
+                        ))}
                     </div>
                 </aside>
 
@@ -429,6 +457,15 @@ const SubjectPage = () => {
                                             <Loader2 size={48} className="spin" style={{ color: accentColor }} />
                                             <h3 style={{ marginTop: '2rem' }}>Generating Study Set...</h3>
                                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>I'm analyzing your notes to create tailored questions.</p>
+                                        </div>
+                                    ) : error ? (
+                                        <div className="study-error" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem' }}>
+                                            <AlertCircle size={48} style={{ color: '#ef4444', marginBottom: '1.5rem' }} />
+                                            <h3>Could Not Generate Study Tasks</h3>
+                                            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: '400px' }}>{error}</p>
+                                            <button className="btn-primary" style={{ marginTop: '2rem' }} onClick={generateStudyTasks}>
+                                                <RotateCcw size={18} /> Try Again
+                                            </button>
                                         </div>
                                     ) : studyTasks ? (
                                         <>

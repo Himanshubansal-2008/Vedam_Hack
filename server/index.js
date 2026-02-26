@@ -64,6 +64,11 @@ app.post('/api/subjects/init', async (req, res) => {
         return res.status(400).json({ error: 'Exactly 3 subjects required' });
     }
     try {
+        const existing = await prisma.subject.count({ where: { userId: clerkId } });
+        if (existing > 0) {
+            return res.status(400).json({ error: 'Subjects already initialized for this user' });
+        }
+
         const created = await Promise.all(
             subjects.map(name =>
                 prisma.subject.create({ data: { name, userId: clerkId } })
@@ -183,6 +188,23 @@ app.get('/api/ai/history', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch history' });
     }
 });
+app.get('/api/ai/study-sets', async (req, res) => {
+    const { clerkId, subjectName } = req.query;
+    if (!clerkId || !subjectName) return res.status(400).json({ error: 'clerkId and subjectName required' });
+
+    try {
+        const { subject } = await getNotesForSubject(clerkId, subjectName);
+        const studySets = await prisma.studySet.findMany({
+            where: { subjectId: subject.id },
+            orderBy: { createdAt: 'desc' },
+            take: 10
+        });
+        res.json({ studySets });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch study sets' });
+    }
+});
 
 app.post('/api/ai/ask', async (req, res) => {
     const { question, clerkId, subjectName } = req.body;
@@ -259,7 +281,12 @@ app.post('/api/ai/study-tasks', async (req, res) => {
 
         const context = notes.map(n => `[File: ${n.filename}]\n${n.content}`).join('\n\n---\n\n');
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-        const prompt = `Based on these study notes for "${subject.name}", generate a study task set.
+        const prompt = `You are a strict academic examiner. Based ONLY on the provided study notes for the subject "${subject.name}", generate a study task set.
+        
+CRITICAL RULES:
+1. Do NOT use outside knowledge. If the notes are about "${subject.name}", do NOT generate questions about other topics.
+2. If the notes are insufficient to generate 5 MCQs, generate as many as possible (min 1).
+3. Base MCQs on specific facts, definitions, or concepts found in the notes.
 
 NOTES:
 ${context.substring(0, 25000)}
@@ -267,23 +294,31 @@ ${context.substring(0, 25000)}
 Generate EXACTLY this JSON structure (no markdown, raw JSON only):
 {
   "mcqs": [
-    {"q": "question", "options": ["A","B","C","D"], "answer": 0, "explanation": "brief explanation"}
+    {"q": "question text", "options": ["A","B","C","D"], "answer": 0, "explanation": "why this is the answer based on the notes"}
   ],
   "shortAnswers": [
-    {"q": "question", "model": "model answer with citation"}
+    {"q": "conceptual question", "model": "detailed model answer citing the source file"}
   ]
 }
 
 Rules:
-- Generate exactly 5 MCQs and 3 short answers
-- Base everything strictly on the provided notes
-- MCQ answer field = index (0-3) of correct option
-- Include source citations in short answer model answers`;
+- Generate up to 5 MCQs and 3 short answers.
+- MCQ answer field = index (0-3) of correct option.
+- Include source citations in short answer model answers.`;
 
         const result = await model.generateContent(prompt);
         let text = result.response.text().trim();
         text = text.replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '');
         const tasks = JSON.parse(text);
+
+        // Persist the generated study set
+        await prisma.studySet.create({
+            data: {
+                subjectId: subject.id,
+                data: tasks
+            }
+        });
+
         res.json(tasks);
     } catch (error) {
         console.error(error);

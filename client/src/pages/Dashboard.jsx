@@ -30,15 +30,10 @@ const Dashboard = () => {
                 if (data.subjects && data.subjects.length > 0) {
                     setSubjects(data.subjects.map((s, i) => ({ ...s, colorIdx: i % 3 })));
                 } else {
-                    // Demo subjects if no DB
-                    setSubjects([
-                        { id: '1', name: 'Data Structures & Algorithms', colorIdx: 0, notes: [] },
-                        { id: '2', name: 'Operating Systems', colorIdx: 1, notes: [] },
-                        { id: '3', name: 'Compiler Design', colorIdx: 2, notes: [] },
-                    ]);
+                    navigate('/setup');
                 }
             } catch {
-                // Fallback demo subjects
+             
                 setSubjects([
                     { id: '1', name: 'Data Structures & Algorithms', colorIdx: 0, notes: [] },
                     { id: '2', name: 'Operating Systems', colorIdx: 1, notes: [] },
@@ -123,7 +118,7 @@ const Dashboard = () => {
             <main className="dashboard-main">
                 <header className="dash-header">
                     <div className="user-welcome">
-                        <h1>Hello, {user?.firstName || 'Student'} 👋</h1>
+                        <h1>Hello, {user?.firstName || 'Student'} </h1>
                         <p>Ready to master your subjects today?</p>
                     </div>
                     <div className="dash-actions">
