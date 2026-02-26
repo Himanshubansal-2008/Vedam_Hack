@@ -95,8 +95,42 @@ app.get('/api/subjects', async (req, res) => {
 });
 
 
+// --- Session Management ---
+
+app.post('/api/sessions', async (req, res) => {
+    const { clerkId, subjectName, title } = req.body;
+    try {
+        const { subject } = await getNotesForSubject(clerkId, subjectName);
+        const session = await prisma.chatSession.create({
+            data: {
+                subjectId: subject.id,
+                title: title || 'New Chat'
+            }
+        });
+        res.json({ session });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to create session' });
+    }
+});
+
+app.get('/api/sessions', async (req, res) => {
+    const { clerkId, subjectName } = req.query;
+    try {
+        const { subject } = await getNotesForSubject(clerkId, subjectName);
+        const sessions = await prisma.chatSession.findMany({
+            where: { subjectId: subject.id },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({ sessions });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch sessions' });
+    }
+});
+
 app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
-    const { subjectId, clerkId, subjectName } = req.body;
+    const { subjectId, clerkId, subjectName, sessionId } = req.body;
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'File required' });
 
@@ -113,17 +147,7 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
         let realSubjectId = subjectId;
 
         if (clerkId && subjectName) {
-            await prisma.user.upsert({
-                where: { clerkId },
-                update: {},
-                create: { clerkId, email: `${clerkId}@clerk.user` },
-            });
-
-            const subject = await prisma.subject.upsert({
-                where: { name_userId: { name: subjectName, userId: clerkId } },
-                update: {},
-                create: { name: subjectName, userId: clerkId },
-            });
+            const { subject } = await getNotesForSubject(clerkId, subjectName);
             realSubjectId = subject.id;
         }
 
@@ -132,11 +156,16 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
         }
 
         const note = await prisma.note.create({
-            data: { filename: file.originalname, content, subjectId: realSubjectId }
+            data: {
+                filename: file.originalname,
+                content,
+                subjectId: realSubjectId,
+                sessionId: sessionId || null
+            }
         });
 
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-        res.json({ note, subjectId: realSubjectId, message: 'File uploaded and processed' });
+        res.json({ note, subjectId: realSubjectId, sessionId, message: 'File uploaded and processed' });
     } catch (error) {
         console.error(error);
         if (fs.existsSync(file?.path)) fs.unlinkSync(file.path);
@@ -144,43 +173,15 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-app.get('/api/notes/content/:noteId', async (req, res) => {
-    try {
-        const note = await prisma.note.findUnique({
-            where: { id: req.params.noteId }
-        });
-        if (!note) return res.status(404).json({ error: 'Note not found' });
-        res.json({ filename: note.filename, content: note.content });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch note content' });
-    }
-});
-
-async function getNotesForSubject(clerkId, subjectName) {
-    await prisma.user.upsert({
-        where: { clerkId },
-        update: {},
-        create: { clerkId, email: `${clerkId}@clerk.user` },
-    });
-    const subject = await prisma.subject.upsert({
-        where: { name_userId: { name: subjectName, userId: clerkId } },
-        update: {},
-        create: { name: subjectName, userId: clerkId },
-    });
-    const notes = await prisma.note.findMany({ where: { subjectId: subject.id } });
-    return { subject, notes };
-}
-
 app.get('/api/ai/history', async (req, res) => {
-    const { clerkId, subjectName } = req.query;
-    if (!clerkId || !subjectName) return res.status(400).json({ error: 'clerkId and subjectName required' });
+    const { sessionId } = req.query;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
     try {
-        const { subject } = await getNotesForSubject(clerkId, subjectName);
         const history = await prisma.chatMessage.findMany({
-            where: { subjectId: subject.id },
+            where: { sessionId },
             orderBy: { createdAt: 'asc' },
-            take: 50
+            take: 100
         });
         res.json({ history });
     } catch (error) {
@@ -188,38 +189,32 @@ app.get('/api/ai/history', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch history' });
     }
 });
-app.get('/api/ai/study-sets', async (req, res) => {
-    const { clerkId, subjectName } = req.query;
-    if (!clerkId || !subjectName) return res.status(400).json({ error: 'clerkId and subjectName required' });
-
-    try {
-        const { subject } = await getNotesForSubject(clerkId, subjectName);
-        const studySets = await prisma.studySet.findMany({
-            where: { subjectId: subject.id },
-            orderBy: { createdAt: 'desc' },
-            take: 10
-        });
-        res.json({ studySets });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Failed to fetch study sets' });
-    }
-});
 
 app.post('/api/ai/ask', async (req, res) => {
-    const { question, clerkId, subjectName } = req.body;
-    if (!question || !clerkId || !subjectName) {
-        return res.status(400).json({ error: 'question, clerkId, and subjectName required' });
+    const { question, sessionId, clerkId, subjectName } = req.body;
+    if (!question || !sessionId) {
+        return res.status(400).json({ error: 'question and sessionId required' });
     }
 
     try {
-        const { subject, notes } = await getNotesForSubject(clerkId, subjectName);
+        // Fetch session to get subject context
+        const session = await prisma.chatSession.findUnique({
+            where: { id: sessionId },
+            include: { subject: true }
+        });
+        if (!session) return res.status(404).json({ error: 'Session not found' });
+
+        // Notes for this session
+        const notes = await prisma.note.findMany({
+            where: { sessionId }
+        });
+
         if (notes.length === 0) {
-            return res.json({ answer: `Not found in your notes for ${subjectName}. Please upload some notes first.` });
+            return res.json({ answer: `No notes found in this chat session. Please upload some files to this chat first.` });
         }
 
         const history = await prisma.chatMessage.findMany({
-            where: { subjectId: subject.id },
+            where: { sessionId },
             orderBy: { createdAt: 'desc' },
             take: 10
         });
@@ -229,11 +224,11 @@ app.post('/api/ai/ask', async (req, res) => {
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
         const prompt = `You are a supportive, teacher-like study assistant named "Study Copilot". 
 Your goal is to explain concepts clearly and conversationally.
-Answer the student's question using ONLY the provided notes.
-If the answer is not in the notes, respond with: "Not found in your notes for ${subjectName}. Would you like to upload more material?"
+Answer the student's question using ONLY the provided notes for this specific chat session.
+If the answer is not in the notes, respond with: "Not found in the notes for this chat. Would you like to upload more material?"
 
 CONSTRAINTS:
-1. Ground answers in the notes.
+1. Ground answers in the provided notes.
 2. Use a helpful, encouraging tone.
 3. Reference the source file name.
 4. If it's a follow-up question, use the recent history to stay in context.
@@ -254,16 +249,23 @@ Include: The Answer (with citations), Confidence: [High/Medium/Low]`;
 
         await prisma.chatMessage.createMany({
             data: [
-                { role: 'user', content: question, subjectId: subject.id },
-                { role: 'assistant', content: answer, subjectId: subject.id }
+                { role: 'user', content: question, sessionId: session.id },
+                { role: 'assistant', content: answer, sessionId: session.id }
             ]
         });
+
+        // Optionally update session title if it's the first message
+        if (history.length === 0) {
+            await prisma.chatSession.update({
+                where: { id: session.id },
+                data: { title: question.substring(0, 30) + (question.length > 30 ? '...' : '') }
+            });
+        }
 
         res.json({ answer });
     } catch (error) {
         console.error(error);
-        const status = error.message?.includes('429') ? 429 : 500;
-        res.status(status).json({ error: 'AI query failed: ' + error.message });
+        res.status(500).json({ error: 'AI query failed: ' + error.message });
     }
 });
 

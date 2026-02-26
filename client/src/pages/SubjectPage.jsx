@@ -106,9 +106,12 @@ const SubjectPage = () => {
         }
     };
 
-    // Load subject and history from API
+    const [sessions, setSessions] = useState([]);
+    const [activeSessionId, setActiveSessionId] = useState(null);
+
+    // Load subject and sessions from API
     useEffect(() => {
-        const fetchSubjectAndHistory = async () => {
+        const fetchSubjectAndSessions = async () => {
             try {
                 // Fetch subject details
                 const { data: subData } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user?.id}`);
@@ -118,55 +121,83 @@ const SubjectPage = () => {
                 if (found) {
                     const idx = subData.subjects.indexOf(found);
                     setSubject({ ...found, colorIdx: idx % 3 });
-                    setNotes(found.notes || []);
+                    setRealSubjectId(found.id);
 
-                    // Fetch chat history for this specific subject
-                    const { data: histData } = await axios.get(`http://localhost:5001/api/ai/history?clerkId=${user?.id}&subjectName=${found.name}`);
-                    if (histData.history) {
-                        setMessages(histData.history.map(msg => ({
-                            role: msg.role,
-                            content: msg.content
-                        })));
+                    // Fetch chat sessions for this subject
+                    const { data: sessData } = await axios.get(`http://localhost:5001/api/sessions?clerkId=${user?.id}&subjectName=${found.name}`);
+                    if (sessData.sessions) {
+                        setSessions(sessData.sessions);
+
+                        // If there's a specific sessionId in URL (future) or just pick latest
+                        if (sessData.sessions.length > 0 && !activeSessionId) {
+                            setActiveSessionId(sessData.sessions[0].id);
+                        } else if (sessData.sessions.length === 0) {
+                            // Create first session automatically if none exist
+                            startNewChat(found.name);
+                        }
                     }
 
-                    // Fetch previous study sets
+                    // Fetch previous study sets (subject-wide)
                     const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${found.name}`);
                     if (sSetsData.studySets) {
                         setStudySets(sSetsData.studySets);
                     }
-                } else {
-                    // Fallback demo data logic (same as before)
-                    const fallback = [
-                        { id: '1', name: 'Data Structures & Algorithms', colorIdx: 0 },
-                        { id: '2', name: 'Operating Systems', colorIdx: 1 },
-                        { id: '3', name: 'Compiler Design', colorIdx: 2 },
-                    ];
-                    const f = fallback.find(s => s.id === subjectId || s.name === decodedId);
-                    if (f) {
-                        setSubject(f);
-                        // Try fetching history for demo subjects too
-                        const { data: h } = await axios.get(`http://localhost:5001/api/ai/history?clerkId=${user?.id}&subjectName=${f.name}`);
-                        if (h.history && h.history.length > 0) {
-                            setMessages(h.history.map(m => ({ role: m.role, content: m.content })));
-                        }
-                    }
                 }
             } catch (err) {
-                console.error("Failed to load subject/history:", err);
-                const decodedId = decodeURIComponent(subjectId);
-                const fallback = [
-                    { id: '1', name: 'Data Structures & Algorithms', colorIdx: 0 },
-                    { id: '2', name: 'Operating Systems', colorIdx: 1 },
-                    { id: '3', name: 'Compiler Design', colorIdx: 2 },
-                ];
-                const f = fallback.find(s => s.id === subjectId || s.name === decodedId);
-                if (f) {
-                    setSubject({ ...f, notes: [] });
-                }
+                console.error("Failed to load subject/sessions:", err);
             }
         };
-        if (user?.id) fetchSubjectAndHistory();
+        if (user?.id) fetchSubjectAndSessions();
     }, [subjectId, user]);
+
+    // Load history when activeSessionId changes
+    useEffect(() => {
+        const fetchSessionHistory = async () => {
+            if (!activeSessionId) return;
+            try {
+                const { data } = await axios.get(`http://localhost:5001/api/ai/history?sessionId=${activeSessionId}`);
+                if (data.history) {
+                    setMessages(data.history.map(msg => ({
+                        role: msg.role,
+                        content: msg.content
+                    })));
+                }
+
+                // Also fetch notes for this session
+                // (Backend modification needed or just reuse notes if global? 
+                // The user said: "if i 5 pdf then it should for that chat only")
+                // So we should fetch notes associated with this session.
+                const { data: subData } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user?.id}`);
+                const f = subData.subjects?.find(s => s.id === realSubjectId || s.id === subjectId);
+                if (f) {
+                    const sessionNotes = f.notes.filter(n => n.sessionId === activeSessionId);
+                    setNotes(sessionNotes);
+                }
+            } catch (err) {
+                console.error("Failed to load session history:", err);
+            }
+        };
+        fetchSessionHistory();
+    }, [activeSessionId]);
+
+    const startNewChat = async (sName) => {
+        try {
+            const { data } = await axios.post('http://localhost:5001/api/sessions', {
+                clerkId: user?.id,
+                subjectName: sName || subject?.name,
+                title: 'New Chat'
+            });
+            if (data.session) {
+                setSessions(prev => [data.session, ...prev]);
+                setActiveSessionId(data.session.id);
+                setMessages([]);
+                setNotes([]);
+                setActiveTab('chat');
+            }
+        } catch (err) {
+            console.error("Failed to create new chat:", err);
+        }
+    };
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -185,6 +216,7 @@ const SubjectPage = () => {
             // Send clerkId + subjectName so backend can upsert user/subject
             formData.append('clerkId', user?.id || '');
             formData.append('subjectName', subject?.name || '');
+            formData.append('sessionId', activeSessionId || '');
             const { data } = await axios.post('http://localhost:5001/api/notes/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
@@ -226,7 +258,7 @@ const SubjectPage = () => {
         try {
             const { data } = await axios.post('http://localhost:5001/api/ai/ask', {
                 question: input,
-                subjectId: realSubjectId || subjectId,
+                sessionId: activeSessionId,
                 clerkId: user?.id,
                 subjectName: subject?.name,
             });
@@ -277,7 +309,7 @@ const SubjectPage = () => {
 
     return (
         <div className="subject-page" style={{ '--accent': accentColor, '--light': lightColor }}>
-            {}
+            {/* Header */}
             <header className="subject-header">
                 <div>
                     <Link to="/dashboard" className="back-btn">
@@ -303,7 +335,7 @@ const SubjectPage = () => {
                     </button>
                     <button
                         className="tab-btn"
-                        style={activeTab === 'chat' ? { background: 'rgba(255,255,255,0.08)', color: 'blue', borderColor: 'var(--glass-border)' } : {}}
+                        style={activeTab === 'chat' ? { background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: 'var(--glass-border)' } : {}}
                         onClick={() => setActiveTab('chat')}
                     >
                         Chat

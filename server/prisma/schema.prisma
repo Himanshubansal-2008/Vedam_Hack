@@ -21,29 +21,41 @@ model Subject {
   userId    String
   user      User          @relation(fields: [userId], references: [clerkId])
   notes     Note[]
-  history   ChatMessage[]
+  sessions  ChatSession[]
   studySets StudySet[]
   createdAt DateTime      @default(now())
 
   @@unique([name, userId])
 }
 
-model Note {
-  id        String   @id @default(uuid())
-  filename  String
-  content   String   // Extracted text content
+model ChatSession {
+  id        String        @id @default(uuid())
+  title     String        @default("New Chat")
   subjectId String
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  createdAt DateTime @default(now())
+  subject   Subject       @relation(fields: [subjectId], references: [id])
+  messages  ChatMessage[]
+  notes     Note[]
+  createdAt DateTime      @default(now())
+}
+
+model Note {
+  id        String       @id @default(uuid())
+  filename  String
+  content   String       // Extracted text content
+  subjectId String
+  subject   Subject      @relation(fields: [subjectId], references: [id])
+  sessionId String?
+  session   ChatSession? @relation(fields: [sessionId], references: [id])
+  createdAt DateTime     @default(now())
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid())
-  role      String   // 'user' or 'assistant'
+  id        String       @id @default(uuid())
+  role      String       // 'user' or 'assistant'
   content   String
-  subjectId String
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  createdAt DateTime @default(now())
+  sessionId String
+  session   ChatSession  @relation(fields: [sessionId], references: [id])
+  createdAt DateTime     @default(now())
 }
 
 model StudySet {
