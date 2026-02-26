@@ -57,13 +57,16 @@ const Dashboard = () => {
             formData.append('clerkId', user?.id || '');
             formData.append('subjectName', selectedSubject.name || '');
 
-            await axios.post('http://localhost:5001/api/notes/upload', formData, {
+            const { data } = await axios.post('http://localhost:5001/api/notes/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             setUploadDone(true);
-            // Navigate to subject page
-            setTimeout(() => navigate(`/subject/${encodeURIComponent(selectedSubject.name)}`), 1000);
+            // Navigate to subject page with sessionId
+            setTimeout(() => {
+                const targetUrl = `/subject/${encodeURIComponent(selectedSubject.name)}${data.sessionId ? `?sessionId=${data.sessionId}` : ''}`;
+                navigate(targetUrl);
+            }, 1000);
         } catch (err) {
             console.error('Upload failed:', err);
             alert(`Upload failed: ${err.response?.data?.error || 'Server error'}. Please ensure the backend is running and subject matches.`);

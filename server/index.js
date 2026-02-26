@@ -174,8 +174,19 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
             realSubjectId = subject.id;
         }
 
-        if (!realSubjectId) {
-            return res.status(400).json({ error: 'subjectId or (clerkId + subjectName) required' });
+        let targetSessionId = sessionId;
+        if (!targetSessionId && realSubjectId) {
+            try {
+                const newSession = await prisma.chatSession.create({
+                    data: {
+                        subjectId: realSubjectId,
+                        title: `New Chat: ${file.originalname}`
+                    }
+                });
+                targetSessionId = newSession.id;
+            } catch (sessErr) {
+                console.error("Failed to create auto-session on upload:", sessErr);
+            }
         }
 
         const note = await prisma.note.create({
@@ -183,12 +194,12 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
                 filename: file.originalname,
                 content,
                 subjectId: realSubjectId,
-                sessionId: sessionId || null
+                sessionId: targetSessionId || null
             }
         });
 
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-        res.json({ note, subjectId: realSubjectId, sessionId, message: 'File uploaded and processed' });
+        res.json({ note, subjectId: realSubjectId, sessionId: targetSessionId, message: 'File uploaded and processed' });
     } catch (error) {
         console.error(error);
         if (fs.existsSync(file?.path)) fs.unlinkSync(file.path);

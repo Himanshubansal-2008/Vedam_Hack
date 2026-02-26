@@ -35,6 +35,7 @@ model ChatSession {
   subject   Subject       @relation(fields: [subjectId], references: [id])
   messages  ChatMessage[]
   notes     Note[]
+  studySets StudySet[]
   createdAt DateTime      @default(now())
 }
 
@@ -59,9 +60,11 @@ model ChatMessage {
 }
 
 model StudySet {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   subjectId String
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  data      Json     // Stores { mcqs: [...], shortAnswers: [...] }
-  createdAt DateTime @default(now())
+  subject   Subject      @relation(fields: [subjectId], references: [id])
+  sessionId String?
+  session   ChatSession? @relation(fields: [sessionId], references: [id])
+  data      Json         // Stores { mcqs: [...], shortAnswers: [...] }
+  createdAt DateTime     @default(now())
 }

@@ -128,8 +128,13 @@ const SubjectPage = () => {
                     if (sessData.sessions) {
                         setSessions(sessData.sessions);
 
-                        // If there's a specific sessionId in URL (future) or just pick latest
-                        if (sessData.sessions.length > 0 && !activeSessionId) {
+                        // If there's a specific sessionId in URL query
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const urlSessionId = urlParams.get('sessionId');
+
+                        if (urlSessionId) {
+                            setActiveSessionId(urlSessionId);
+                        } else if (sessData.sessions.length > 0 && !activeSessionId) {
                             setActiveSessionId(sessData.sessions[0].id);
                         } else if (sessData.sessions.length === 0) {
                             // Create first session automatically if none exist
