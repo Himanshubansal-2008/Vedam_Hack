@@ -6,11 +6,11 @@
 }
 
 .subject-header {
-    background: rgba(15, 23, 42, 0.8);
+    background: var(--bg-card);
     backdrop-filter: blur(20px);
     padding: 0.75rem 2rem;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--glass-border);
     z-index: 100;
@@ -28,7 +28,7 @@
 }
 
 .back-btn:hover {
-    color: white;
+    color: var(--text-main);
 }
 
 .subject-title-row {
@@ -41,6 +41,12 @@
     font-size: 1.25rem;
     margin: 0;
     white-space: nowrap;
+}
+
+.subject-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .subject-actions {
@@ -65,8 +71,8 @@
 }
 
 .tab-btn:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    background: var(--glass-hover);
 }
 
 .subject-body {
@@ -76,7 +82,6 @@
     position: relative;
 }
 
-/* ─── Chat History Sidebar (Left) ─── */
 .chat-history-sidebar {
     width: 240px;
     background: var(--bg-sidebar);
@@ -126,8 +131,8 @@
 }
 
 .history-item:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
+    background: var(--glass-hover);
+    color: var(--text-main);
 }
 
 .history-empty-hint {
@@ -138,10 +143,9 @@
     font-style: italic;
 }
 
-/* ─── Main Content & Chat ─── */
 .subject-main {
     flex: 1;
-    background: #020617;
+    background: var(--bg-dark);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -196,7 +200,6 @@
     color: var(--text-main);
 }
 
-/* ─── Files Drawer (Right) ─── */
 .files-drawer {
     width: 320px;
     background: var(--bg-sidebar);
@@ -303,7 +306,6 @@
     background: rgba(99, 102, 241, 0.05);
 }
 
-/* ─── Preview Modal ─── */
 .preview-overlay {
     position: fixed;
     inset: 0;
@@ -352,7 +354,7 @@
 .content-text {
     white-space: pre-wrap;
     line-height: 1.8;
-    color: #cbd5e1;
+    color: var(--text-main);
     font-family: 'Inter', sans-serif;
 }
 
@@ -379,8 +381,8 @@
 
 .close-modal:hover,
 .close-drawer:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--glass-hover);
+    color: var(--text-main);
 }
 
 .chat-input-row {
@@ -406,7 +408,7 @@
     flex: 1;
     background: transparent;
     border: none;
-    color: white;
+    color: var(--text-main);
     font-size: 1rem;
     outline: none;
 }
@@ -435,7 +437,6 @@
     cursor: not-allowed;
 }
 
-/* ─── Study Panel ─── */
 .study-panel {
     padding: 4rem 2rem;
     overflow-y: auto;
@@ -495,8 +496,8 @@
 }
 
 .mcq-option:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--glass-hover);
+    border-color: var(--glass-border);
 }
 
 .mcq-option.correct {
@@ -527,7 +528,7 @@
 }
 
 .chat-empty h3 {
-    color: white;
+    color: var(--text-main);
     margin: 1.5rem 0 0.5rem;
     font-size: 1.5rem;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useUser, SignOutButton } from '@clerk/clerk-react';
+import { useUser, SignOutButton, UserButton } from '@clerk/clerk-react';
 import {
     Plus, FileUp, ExternalLink, LayoutDashboard,
     BookOpen, LogOut, Search, Loader2, CheckCircle
@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Dashboard.css';
+import ThemeToggle from '../components/ThemeToggle';
 
 const SUBJECT_COLORS = ['#6366f1', '#a855f7', '#06b6d4'];
 
@@ -125,9 +126,13 @@ const Dashboard = () => {
                         <h1>Hello, {user?.firstName || 'Student'} 👋</h1>
                         <p>Ready to master your subjects today?</p>
                     </div>
-                    <div className="search-bar">
-                        <Search size={18} />
-                        <input type="text" placeholder="Search subjects..." />
+                    <div className="dash-actions">
+                        <div className="search-bar">
+                            <Search size={18} />
+                            <input type="text" placeholder="Search subjects..." />
+                        </div>
+                        <ThemeToggle />
+                        <UserButton afterSignOutUrl="/" />
                     </div>
                 </header>
 

@@ -23,10 +23,10 @@ function App() {
         <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
             <Router>
                 <Routes>
-                    {/* Public */}
+                    {}
                     <Route path="/" element={<Landing />} />
 
-                    {/* Protected */}
+                    {}
                     <Route path="/setup" element={
                         <SignedIn>
                             <SubjectSetup />
@@ -43,7 +43,7 @@ function App() {
                         </SignedIn>
                     } />
 
-                    {/* Fallback */}
+                    {}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Router>

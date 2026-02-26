@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, UserButton } from '@clerk/clerk-react';
 import { BookPlus, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import '../styles/SubjectSetup.css';
+import ThemeToggle from '../components/ThemeToggle';
 
 const SUGGESTED = [
     'Data Structures & Algorithms',
@@ -67,6 +68,10 @@ const SubjectSetup = () => {
                 transition={{ duration: 0.4 }}
                 className="setup-card"
             >
+                <div className="setup-actions">
+                    <ThemeToggle />
+                    <UserButton afterSignOutUrl="/" />
+                </div>
                 <div className="setup-header">
                     <BookPlus className="setup-icon" size={48} />
                     <h1>Setup Your Subjects</h1>

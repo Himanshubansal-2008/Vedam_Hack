@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Landing.css';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Landing = () => {
     const { isSignedIn } = useAuth();
@@ -40,6 +41,7 @@ const Landing = () => {
                     <span>AskMyNotes</span>
                 </div>
                 <div className="nav-links">
+                    <ThemeToggle />
                     <SignInButton mode="modal">
                         <button className="btn-secondary">Sign In</button>
                     </SignInButton>

@@ -1,0 +1,49 @@
+.theme-toggle {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    width: 56px;
+}
+
+.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--primary);
+}
+
+.toggle-track {
+    position: relative;
+    width: 100%;
+    height: 24px;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-thumb {
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 0 10px var(--primary-glow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle.light .toggle-thumb {
+    transform: translateX(24px);
+    background: #f59e0b;
+    /* Amber for sun */
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.theme-toggle.light {
+    background: #e2e8f0;
+}

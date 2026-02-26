@@ -62,8 +62,8 @@
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
+    background: var(--glass-hover);
+    color: var(--text-main);
 }
 
 .nav-item.active,
@@ -81,7 +81,7 @@
     flex: 1;
     padding: 3rem 4rem;
     overflow-y: auto;
-    background: #020617;
+    background: var(--bg-dark);
 }
 
 .dash-header {
@@ -112,12 +112,18 @@
 }
 
 .search-bar input {
-    background: transparent;
+    background: none;
     border: none;
-    color: white;
+    color: var(--text-main);
     outline: none;
     font-size: 0.9rem;
-    width: 100%;
+    width: 200px;
+}
+
+.dash-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .stats-row {
@@ -146,7 +152,7 @@
     font-size: 2.5rem;
     font-weight: 700;
     font-family: 'Outfit', sans-serif;
-    color: white;
+    color: var(--text-main);
 }
 
 .upload-section {
@@ -192,11 +198,11 @@
 }
 
 .subject-dropdown select {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--glass);
     border: 1px solid var(--glass-border);
     padding: 0.875rem 1rem;
     border-radius: 12px;
-    color: white;
+    color: var(--text-main);
     font-size: 1rem;
     outline: none;
 }
@@ -248,7 +254,7 @@
 }
 
 .mini-card:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--glass-hover);
     border-color: var(--glass-border);
     transform: translateX(4px);
 }
@@ -256,7 +262,7 @@
 .mini-card-icon {
     width: 48px;
     height: 48px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--glass);
     border-radius: 12px;
     display: flex;
     align-items: center;

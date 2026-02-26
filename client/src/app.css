@@ -1,6 +1,3 @@
-/* =============================================
-   DASHBOARD STYLES
-   ============================================= */
 
 .dashboard-container {
     display: flex;
@@ -295,9 +292,6 @@
     color: var(--text-muted);
 }
 
-/* =============================================
-   SUBJECT PAGE STYLES
-   ============================================= */
 
 .loading-screen {
     min-height: 100vh;
@@ -470,7 +464,6 @@
     overflow: hidden;
 }
 
-/* Chat Panel */
 .chat-panel {
     display: flex;
     flex-direction: column;
@@ -594,7 +587,6 @@
     cursor: not-allowed;
 }
 
-/* Study Panel */
 .study-panel {
     flex: 1;
     overflow-y: auto;

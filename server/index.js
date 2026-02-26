@@ -20,7 +20,6 @@ const PORT = process.env.PORT || 5000;
 const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = path.join(__dirname, 'uploads');
@@ -38,14 +37,11 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// ─── HEALTH CHECK ────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 app.get('/', (req, res) => res.json({ message: "AskMyNotes API is running", version: "1.0.0" }));
 app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => res.status(204).end());
 
-// ─── USERS ────────────────────────────────────────────────────────────────────
-// Upsert user when they log in via Clerk
 app.post('/api/users/sync', async (req, res) => {
     const { clerkId, email } = req.body;
     try {
@@ -62,8 +58,6 @@ app.post('/api/users/sync', async (req, res) => {
     }
 });
 
-// ─── SUBJECTS ─────────────────────────────────────────────────────────────────
-// Create 3 subjects for a user (first-time setup)
 app.post('/api/subjects/init', async (req, res) => {
     const { clerkId, subjects } = req.body;
     if (!subjects || subjects.length !== 3) {
@@ -82,7 +76,6 @@ app.post('/api/subjects/init', async (req, res) => {
     }
 });
 
-// Get all subjects for a user
 app.get('/api/subjects', async (req, res) => {
     const { clerkId } = req.query;
     try {
@@ -96,7 +89,7 @@ app.get('/api/subjects', async (req, res) => {
     }
 });
 
-// ─── NOTES / FILE UPLOAD ──────────────────────────────────────────────────────
+
 app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
     const { subjectId, clerkId, subjectName } = req.body;
     const file = req.file;
@@ -112,19 +105,15 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
             content = fs.readFileSync(file.path, 'utf-8');
         }
 
-        // Determine the real DB subject ID
         let realSubjectId = subjectId;
 
-        // If clerkId + subjectName provided, upsert user & subject to get real ID
         if (clerkId && subjectName) {
-            // Ensure user exists
             await prisma.user.upsert({
                 where: { clerkId },
                 update: {},
                 create: { clerkId, email: `${clerkId}@clerk.user` },
             });
 
-            // Upsert subject by name+userId
             const subject = await prisma.subject.upsert({
                 where: { name_userId: { name: subjectName, userId: clerkId } },
                 update: {},
@@ -141,7 +130,6 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
             data: { filename: file.originalname, content, subjectId: realSubjectId }
         });
 
-        // Clean up uploaded file
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
         res.json({ note, subjectId: realSubjectId, message: 'File uploaded and processed' });
     } catch (error) {
@@ -151,9 +139,6 @@ app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-
-// ─── AI ───────────────────────────────────────────────────────────────────────
-// Get note content by ID (for preview)
 app.get('/api/notes/content/:noteId', async (req, res) => {
     try {
         const note = await prisma.note.findUnique({
@@ -166,7 +151,6 @@ app.get('/api/notes/content/:noteId', async (req, res) => {
     }
 });
 
-// Helper: get notes for a subject by clerkId+subjectName (creates user/subject if needed)
 async function getNotesForSubject(clerkId, subjectName) {
     await prisma.user.upsert({
         where: { clerkId },
@@ -182,7 +166,6 @@ async function getNotesForSubject(clerkId, subjectName) {
     return { subject, notes };
 }
 
-// GET chat history for a subject (using clerkId + subjectName for resolution)
 app.get('/api/ai/history', async (req, res) => {
     const { clerkId, subjectName } = req.query;
     if (!clerkId || !subjectName) return res.status(400).json({ error: 'clerkId and subjectName required' });
@@ -201,7 +184,6 @@ app.get('/api/ai/history', async (req, res) => {
     }
 });
 
-// Ask a question about a specific subject
 app.post('/api/ai/ask', async (req, res) => {
     const { question, clerkId, subjectName } = req.body;
     if (!question || !clerkId || !subjectName) {
@@ -230,7 +212,6 @@ Provide: Answer, Confidence (High/Medium/Low), Source reference.`;
         const result = await model.generateContent(prompt);
         const answer = result.response.text();
 
-        // Persist history
         await prisma.chatMessage.createMany({
             data: [
                 { role: 'user', content: question, subjectId: subject.id },
@@ -246,7 +227,6 @@ Provide: Answer, Confidence (High/Medium/Low), Source reference.`;
     }
 });
 
-// Generate study tasks (MCQs + short answers)
 app.post('/api/ai/study-tasks', async (req, res) => {
     const { clerkId, subjectName } = req.body;
     if (!clerkId || !subjectName) {
@@ -293,7 +273,6 @@ Rules:
     }
 });
 
-// ─── START ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 });

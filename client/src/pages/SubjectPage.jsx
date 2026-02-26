@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, UserButton } from '@clerk/clerk-react';
 import {
     ArrowLeft, FileUp, Send, BookOpen, Sparkles,
     CheckCircle, AlertCircle, FileText, Loader2,
@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import '../styles/SubjectPage.css';
+import ThemeToggle from '../components/ThemeToggle';
 
 const SUBJECT_COLORS = {
     0: { bg: '#1e1b4b', accent: '#6366f1', light: 'rgba(99,102,241,0.15)' },
@@ -209,7 +210,9 @@ const SubjectPage = () => {
                     <h1>{subject.name}</h1>
                 </div>
 
-                <div className="subject-actions">
+                <div className="subject-actions-row">
+                    <ThemeToggle />
+                    <UserButton afterSignOutUrl="/" />
                     <button
                         className="tab-btn"
                         style={{ border: showFileSidebar ? '1px solid var(--accent)' : '1px solid transparent' }}
@@ -228,7 +231,7 @@ const SubjectPage = () => {
                     <button
                         className="tab-btn"
                         style={activeTab === 'study' ? { background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: 'var(--glass-border)' } : {}}
-                        onClick={generateStudyTasks}
+                        onClick={() => setActiveTab('study')}
                     >
                         Study Mode
                     </button>

@@ -15,7 +15,7 @@
     border: 1px solid var(--glass-border);
     max-width: 500px;
     width: 100%;
-    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.15);
 }
 
 .setup-header {
@@ -54,11 +54,11 @@
 
 .setup-form input {
     width: 100%;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--glass);
     border: 1px solid var(--glass-border);
     padding: 1rem 1.25rem;
     border-radius: 14px;
-    color: white;
+    color: var(--text-main);
     font-size: 1rem;
     transition: all 0.2s;
 }
@@ -66,5 +66,15 @@
 .setup-form input:focus {
     outline: none;
     border-color: var(--primary);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--glass-hover);
+}
+
+.setup-actions {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10;
 }
