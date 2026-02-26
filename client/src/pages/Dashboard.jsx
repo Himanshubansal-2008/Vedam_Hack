@@ -10,7 +10,7 @@ import axios from 'axios';
 import '../styles/Dashboard.css';
 import ThemeToggle from '../components/ThemeToggle';
 
-const SUBJECT_COLORS = ['#6366f1', '#a855f7', '#06b6d4'];
+const SUBJECT_COLORS = ['#0673f9', '#0673f9', '#0673f9'];
 
 const Dashboard = () => {
     const { user } = useUser();
