@@ -25,6 +25,21 @@ const SubjectSetup = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
+    React.useEffect(() => {
+        const checkExisting = async () => {
+            if (!user?.id) return;
+            try {
+                const { data } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user.id}`);
+                if (data.subjects && data.subjects.length >= 3) {
+                    navigate('/dashboard');
+                }
+            } catch (err) {
+                console.warn('Check failed:', err.message);
+            }
+        };
+        checkExisting();
+    }, [user, navigate]);
+
     const handleChange = (index, value) => {
         const updated = [...subjects];
         updated[index] = value;

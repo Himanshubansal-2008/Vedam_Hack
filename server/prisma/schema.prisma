@@ -22,6 +22,7 @@ model Subject {
   user      User          @relation(fields: [userId], references: [clerkId])
   notes     Note[]
   history   ChatMessage[]
+  studySets StudySet[]
   createdAt DateTime      @default(now())
 
   @@unique([name, userId])
@@ -42,5 +43,13 @@ model ChatMessage {
   content   String
   subjectId String
   subject   Subject  @relation(fields: [subjectId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model StudySet {
+  id        String   @id @default(uuid())
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  data      Json     // Stores { mcqs: [...], shortAnswers: [...] }
   createdAt DateTime @default(now())
 }
