@@ -25,47 +25,48 @@ const Dashboard = () => {
 
     useEffect(() => {
         const fetchSubjects = async () => {
+            if (!user?.id) return;
+            setLoadingSubjects(true);
             try {
-                const { data } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user?.id}`);
+                const { data } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user.id}`);
                 if (data.subjects && data.subjects.length > 0) {
                     setSubjects(data.subjects.map((s, i) => ({ ...s, colorIdx: i % 3 })));
-                } else {
+                } else if (data.subjects && data.subjects.length === 0) {
                     navigate('/setup');
                 }
-            } catch {
-             
-                setSubjects([
-                    { id: '1', name: 'Data Structures & Algorithms', colorIdx: 0, notes: [] },
-                    { id: '2', name: 'Operating Systems', colorIdx: 1, notes: [] },
-                    { id: '3', name: 'Compiler Design', colorIdx: 2, notes: [] },
-                ]);
+            } catch (err) {
+                console.error('Failed to fetch subjects:', err);
+                // Do not set fake subjects here, show error if real fetch fails
             } finally {
                 setLoadingSubjects(false);
             }
         };
-        if (user?.id) fetchSubjects();
-    }, [user]);
+        fetchSubjects();
+    }, [user, navigate]);
 
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file || !selectedSubject) return;
 
         setUploading(true);
+        setUploadDone(false);
         try {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('subjectId', selectedSubject.id);
             formData.append('clerkId', user?.id || '');
             formData.append('subjectName', selectedSubject.name || '');
+
             await axios.post('http://localhost:5001/api/notes/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
+
             setUploadDone(true);
-            // Navigate to subject page using name for better resolution
-            setTimeout(() => navigate(`/subject/${encodeURIComponent(selectedSubject.name)}`), 800);
+            // Navigate to subject page
+            setTimeout(() => navigate(`/subject/${encodeURIComponent(selectedSubject.name)}`), 1000);
         } catch (err) {
-            console.warn('Upload API not available, navigating directly');
-            navigate(`/subject/${encodeURIComponent(selectedSubject.name)}`);
+            console.error('Upload failed:', err);
+            alert(`Upload failed: ${err.response?.data?.error || 'Server error'}. Please ensure the backend is running and subject matches.`);
         } finally {
             setUploading(false);
         }

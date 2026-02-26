@@ -644,3 +644,45 @@
     margin: 1.5rem 0 0.5rem;
     font-size: 1.5rem;
 }
+
+/* Session Sidebar Styles */
+.new-chat-btn {
+    width: 100%;
+    padding: 0.875rem;
+    margin-bottom: 1.5rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.new-chat-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+    filter: brightness(1.1);
+}
+
+.history-section-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 1.5rem 0 0.75rem 0.5rem;
+    font-weight: 700;
+}
+
+.history-empty-hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 0.5rem;
+}

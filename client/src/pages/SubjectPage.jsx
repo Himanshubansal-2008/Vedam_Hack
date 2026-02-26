@@ -124,7 +124,7 @@ const SubjectPage = () => {
                     setRealSubjectId(found.id);
 
                     // Fetch chat sessions for this subject
-                    const { data: sessData } = await axios.get(`http://localhost:5001/api/sessions?clerkId=${user?.id}&subjectName=${found.name}`);
+                    const { data: sessData } = await axios.get(`http://localhost:5001/api/sessions?clerkId=${user?.id}&subjectName=${encodeURIComponent(found.name)}`);
                     if (sessData.sessions) {
                         setSessions(sessData.sessions);
 
@@ -138,7 +138,7 @@ const SubjectPage = () => {
                     }
 
                     // Fetch previous study sets (subject-wide)
-                    const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${found.name}`);
+                    const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(found.name)}`);
                     if (sSetsData.studySets) {
                         setStudySets(sSetsData.studySets);
                     }
@@ -285,7 +285,7 @@ const SubjectPage = () => {
             setStudyTasks(data);
 
             // Refresh history
-            const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${subject?.name}`);
+            const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(subject?.name)}`);
             if (sSetsData.studySets) {
                 setStudySets(sSetsData.studySets);
             }
@@ -353,22 +353,33 @@ const SubjectPage = () => {
             <div className="subject-body">
                 {/* Left Sidebar: Chat History / Sessions */}
                 <aside className="chat-history-sidebar">
-                    <div className="sidebar-header-sm">
-                        <RotateCcw size={14} />
-                        <span>Chat History</span>
-                    </div>
+                    <button className="new-chat-btn" onClick={() => startNewChat()}>
+                        <Sparkles size={16} />
+                        <span>New Chat</span>
+                    </button>
 
                     <div className="history-list">
-                        <button
-                            className={`history-item ${activeTab === 'chat' ? 'active' : ''}`}
-                            onClick={() => {
-                                setSelectedStudySet(null);
-                                setActiveTab('chat');
-                            }}
-                        >
-                            <Sparkles size={16} />
-                            <span>Current Chat</span>
-                        </button>
+                        <div className="history-section-label">Recent Chats</div>
+                        {sessions.length === 0 && (
+                            <div className="history-empty-hint">No chats yet</div>
+                        )}
+                        {sessions.map((sess) => (
+                            <button
+                                key={sess.id}
+                                className={`history-item ${activeSessionId === sess.id && activeTab === 'chat' ? 'active' : ''}`}
+                                onClick={() => {
+                                    setActiveSessionId(sess.id);
+                                    setActiveTab('chat');
+                                    setSelectedStudySet(null);
+                                }}
+                            >
+                                <Sparkles size={16} />
+                                <div className="history-item-info">
+                                    <span>{sess.title}</span>
+                                    <small>{new Date(sess.createdAt).toLocaleDateString()}</small>
+                                </div>
+                            </button>
+                        ))}
 
                         <div className="history-section-label">Previous Study Sets</div>
                         {studySets.length === 0 && (
@@ -626,6 +637,14 @@ const SubjectPage = () => {
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    style={{ display: 'none' }}
+                    accept=".pdf,.txt"
+                    onChange={handleFileUpload}
+                />
             </div>
         </div>
     );

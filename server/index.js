@@ -59,11 +59,20 @@ app.post('/api/users/sync', async (req, res) => {
 });
 
 app.post('/api/subjects/init', async (req, res) => {
-    const { clerkId, subjects } = req.body;
+    const { clerkId, email, subjects } = req.body;
     if (!subjects || subjects.length !== 3) {
         return res.status(400).json({ error: 'Exactly 3 subjects required' });
     }
     try {
+        // Ensure user exists first
+        if (email) {
+            await prisma.user.upsert({
+                where: { clerkId },
+                update: { email },
+                create: { clerkId, email },
+            });
+        }
+
         const existing = await prisma.subject.count({ where: { userId: clerkId } });
         if (existing > 0) {
             return res.status(400).json({ error: 'Subjects already initialized for this user' });
@@ -94,6 +103,19 @@ app.get('/api/subjects', async (req, res) => {
     }
 });
 
+// --- Helper Functions ---
+async function getNotesForSubject(clerkId, subjectName) {
+    console.log(`[DB Lookup] Searching for subject: "${subjectName}" for user: ${clerkId}`);
+    const subject = await prisma.subject.findUnique({
+        where: { name_userId: { name: subjectName, userId: clerkId } },
+        include: { notes: true }
+    });
+    if (!subject) {
+        console.error(`[DB Error] Subject not found: "${subjectName}" for user: ${clerkId}`);
+        throw new Error('Subject not found');
+    }
+    return { subject, notes: subject.notes };
+}
 
 // --- Session Management ---
 
@@ -131,6 +153,7 @@ app.get('/api/sessions', async (req, res) => {
 
 app.post('/api/notes/upload', upload.single('file'), async (req, res) => {
     const { subjectId, clerkId, subjectName, sessionId } = req.body;
+    console.log(`[Upload] Body:`, { subjectId, clerkId, subjectName, sessionId });
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'File required' });
 

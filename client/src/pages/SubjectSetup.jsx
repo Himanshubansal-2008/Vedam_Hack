@@ -63,6 +63,7 @@ const SubjectSetup = () => {
         try {
             await axios.post('http://localhost:5001/api/subjects/init', {
                 clerkId: user?.id,
+                email: user?.primaryEmailAddress?.emailAddress,
                 subjects: subjects.map(s => s.trim()),
             });
             navigate('/dashboard');
