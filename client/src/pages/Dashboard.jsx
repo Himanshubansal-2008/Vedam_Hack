@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser, SignOutButton, UserButton } from '@clerk/clerk-react';
 import {
     Plus, FileUp, ExternalLink, LayoutDashboard,
-    BookOpen, LogOut, Search, Loader2, CheckCircle
+    BookOpen, LogOut, Loader2, CheckCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -101,7 +101,7 @@ const Dashboard = () => {
                         <button
                             key={subject.id}
                             className={`nav-item ${selectedSubject?.id === subject.id ? 'selected' : ''}`}
-                            onClick={() => { setSelectedSubject(subject); setUploadDone(false); }}
+                            onClick={() => navigate(`/subject/${subject.id}`)}
                         >
                             <div style={{ width: 8, height: 8, borderRadius: '50%', background: SUBJECT_COLORS[subject.colorIdx], flexShrink: 0 }} />
                             <span style={{ fontSize: '0.85rem' }}>{subject.name}</span>
@@ -126,10 +126,6 @@ const Dashboard = () => {
                         <p>Ready to master your subjects today?</p>
                     </div>
                     <div className="dash-actions">
-                        <div className="search-bar">
-                            <Search size={18} />
-                            <input type="text" placeholder="Search subjects..." />
-                        </div>
                         <ThemeToggle />
                         <UserButton afterSignOutUrl="/" />
                     </div>

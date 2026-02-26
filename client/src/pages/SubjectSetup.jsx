@@ -7,16 +7,7 @@ import axios from 'axios';
 import '../styles/SubjectSetup.css';
 import ThemeToggle from '../components/ThemeToggle';
 
-const SUGGESTED = [
-    'Data Structures & Algorithms',
-    'Operating Systems',
-    'Computer Networks',
-    'Database Management',
-    'Compiler Design',
-    'Machine Learning',
-    'Digital Electronics',
-    'Software Engineering',
-];
+
 
 const SubjectSetup = () => {
     const { user } = useUser();
@@ -46,11 +37,7 @@ const SubjectSetup = () => {
         setSubjects(updated);
     };
 
-    const handleSuggest = (index, value) => {
-        const updated = [...subjects];
-        updated[index] = value;
-        setSubjects(updated);
-    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -92,7 +79,7 @@ const SubjectSetup = () => {
                     <BookPlus className="setup-icon" size={48} />
                     <h1>Setup Your Subjects</h1>
                     <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                        Choose exactly <strong>3 subjects</strong> you'll study this term.
+                        Enter exactly <strong>3 subjects</strong> you'll study this term.
                     </p>
                 </div>
 
@@ -102,17 +89,11 @@ const SubjectSetup = () => {
                             <label>Subject {index + 1}</label>
                             <input
                                 type="text"
-                                list={`suggestions-${index}`}
-                                placeholder="e.g. Data Structures & Algorithms"
+                                placeholder="e.g. Quantum Physics, Economics..."
                                 value={subject}
                                 onChange={(e) => handleChange(index, e.target.value)}
                                 required
                             />
-                            <datalist id={`suggestions-${index}`}>
-                                {SUGGESTED.filter(s => !subjects.includes(s)).map(s => (
-                                    <option key={s} value={s} />
-                                ))}
-                            </datalist>
                         </div>
                     ))}
 
