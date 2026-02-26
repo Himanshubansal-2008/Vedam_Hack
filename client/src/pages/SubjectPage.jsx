@@ -132,7 +132,7 @@ const SubjectPage = () => {
                         { id: '2', name: 'Operating Systems', colorIdx: 1 },
                         { id: '3', name: 'Compiler Design', colorIdx: 2 },
                     ];
-                    const f = fallback.find(s => s.id === subjectId);
+                    const f = fallback.find(s => s.id === subjectId || s.name === decodedId);
                     if (f) {
                         setSubject(f);
                         // Try fetching history for demo subjects too
@@ -144,6 +144,16 @@ const SubjectPage = () => {
                 }
             } catch (err) {
                 console.error("Failed to load subject/history:", err);
+                const decodedId = decodeURIComponent(subjectId);
+                const fallback = [
+                    { id: '1', name: 'Data Structures & Algorithms', colorIdx: 0 },
+                    { id: '2', name: 'Operating Systems', colorIdx: 1 },
+                    { id: '3', name: 'Compiler Design', colorIdx: 2 },
+                ];
+                const f = fallback.find(s => s.id === subjectId || s.name === decodedId);
+                if (f) {
+                    setSubject({ ...f, notes: [] });
+                }
             }
         };
         if (user?.id) fetchSubjectAndHistory();
