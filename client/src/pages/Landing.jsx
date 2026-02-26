@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Landing.css';
 import ThemeToggle from '../components/ThemeToggle';
+import API_BASE from '../config/api';
 
 const Landing = () => {
     const { isSignedIn } = useAuth();
@@ -18,7 +19,7 @@ const Landing = () => {
         // Check if user has set up subjects
         const checkUser = async () => {
             try {
-                const { data } = await axios.post('http://localhost:5001/api/users/sync', {
+                const { data } = await axios.post(`${API_BASE}/api/users/sync`, {
                     clerkId: user.id,
                     email: user.primaryEmailAddress?.emailAddress,
                 });

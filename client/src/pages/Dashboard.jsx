@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 import ThemeToggle from '../components/ThemeToggle';
+import API_BASE from '../config/api';
 
 const SUBJECT_COLORS = ['#0673f9', '#0673f9', '#0673f9'];
 
@@ -28,7 +29,7 @@ const Dashboard = () => {
             if (!user?.id) return;
             setLoadingSubjects(true);
             try {
-                const { data } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user.id}`);
+                const { data } = await axios.get(`${API_BASE}/api/subjects?clerkId=${user.id}`);
                 if (data.subjects && data.subjects.length > 0) {
                     setSubjects(data.subjects.map((s, i) => ({ ...s, colorIdx: i % 3 })));
                 } else if (data.subjects && data.subjects.length === 0) {
@@ -57,7 +58,7 @@ const Dashboard = () => {
             formData.append('clerkId', user?.id || '');
             formData.append('subjectName', selectedSubject.name || '');
 
-            const { data } = await axios.post('http://localhost:5001/api/notes/upload', formData, {
+            const { data } = await axios.post(`${API_BASE}/api/notes/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 

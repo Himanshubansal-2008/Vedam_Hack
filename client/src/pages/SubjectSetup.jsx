@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import '../styles/SubjectSetup.css';
 import ThemeToggle from '../components/ThemeToggle';
+import API_BASE from '../config/api';
 
 
 
@@ -20,7 +21,7 @@ const SubjectSetup = () => {
         const checkExisting = async () => {
             if (!user?.id) return;
             try {
-                const { data } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user.id}`);
+                const { data } = await axios.get(`${API_BASE}/api/subjects?clerkId=${user.id}`);
                 if (data.subjects && data.subjects.length >= 3) {
                     navigate('/dashboard');
                 }
@@ -48,7 +49,7 @@ const SubjectSetup = () => {
         setLoading(true);
         setError('');
         try {
-            await axios.post('http://localhost:5001/api/subjects/init', {
+            await axios.post(`${API_BASE}/api/subjects/init`, {
                 clerkId: user?.id,
                 email: user?.primaryEmailAddress?.emailAddress,
                 subjects: subjects.map(s => s.trim()),

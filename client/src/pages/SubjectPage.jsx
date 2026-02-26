@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import '../styles/SubjectPage.css';
 import ThemeToggle from '../components/ThemeToggle';
+import API_BASE from '../config/api';
 
 const SUBJECT_COLORS = {
     0: { bg: '#1e1b4b', accent: '#6366f1', light: 'rgba(99,102,241,0.15)' },
@@ -114,7 +115,7 @@ const SubjectPage = () => {
         const fetchSubjectAndSessions = async () => {
             try {
                 // Fetch subject details
-                const { data: subData } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user?.id}`);
+                const { data: subData } = await axios.get(`${API_BASE}/api/subjects?clerkId=${user?.id}`);
                 const decodedId = decodeURIComponent(subjectId);
                 const found = subData.subjects?.find(s => s.id === subjectId || s.name === decodedId);
 
@@ -124,7 +125,7 @@ const SubjectPage = () => {
                     setRealSubjectId(found.id);
 
                     // Fetch chat sessions for this subject
-                    const { data: sessData } = await axios.get(`http://localhost:5001/api/sessions?clerkId=${user?.id}&subjectName=${encodeURIComponent(found.name)}`);
+                    const { data: sessData } = await axios.get(`${API_BASE}/api/sessions?clerkId=${user?.id}&subjectName=${encodeURIComponent(found.name)}`);
                     if (sessData.sessions) {
                         setSessions(sessData.sessions);
 
@@ -143,7 +144,7 @@ const SubjectPage = () => {
                     }
 
                     // Fetch previous study sets (subject-wide)
-                    const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(found.name)}`);
+                    const { data: sSetsData } = await axios.get(`${API_BASE}/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(found.name)}`);
                     if (sSetsData.studySets) {
                         setStudySets(sSetsData.studySets);
                     }
@@ -160,7 +161,7 @@ const SubjectPage = () => {
         const fetchSessionHistory = async () => {
             if (!activeSessionId) return;
             try {
-                const { data } = await axios.get(`http://localhost:5001/api/ai/history?sessionId=${activeSessionId}`);
+                const { data } = await axios.get(`${API_BASE}/api/ai/history?sessionId=${activeSessionId}`);
                 if (data.history) {
                     setMessages(data.history.map(msg => ({
                         role: msg.role,
@@ -172,7 +173,7 @@ const SubjectPage = () => {
                 // (Backend modification needed or just reuse notes if global? 
                 // The user said: "if i 5 pdf then it should for that chat only")
                 // So we should fetch notes associated with this session.
-                const { data: subData } = await axios.get(`http://localhost:5001/api/subjects?clerkId=${user?.id}`);
+                const { data: subData } = await axios.get(`${API_BASE}/api/subjects?clerkId=${user?.id}`);
                 const f = subData.subjects?.find(s => s.id === realSubjectId || s.id === subjectId);
                 if (f) {
                     const sessionNotes = f.notes.filter(n => n.sessionId === activeSessionId);
@@ -187,7 +188,7 @@ const SubjectPage = () => {
 
     const startNewChat = async (sName) => {
         try {
-            const { data } = await axios.post('http://localhost:5001/api/sessions', {
+            const { data } = await axios.post(`${API_BASE}/api/sessions`, {
                 clerkId: user?.id,
                 subjectName: sName || subject?.name,
                 title: 'New Chat'
@@ -222,7 +223,7 @@ const SubjectPage = () => {
             formData.append('clerkId', user?.id || '');
             formData.append('subjectName', subject?.name || '');
             formData.append('sessionId', activeSessionId || '');
-            const { data } = await axios.post('http://localhost:5001/api/notes/upload', formData, {
+            const { data } = await axios.post(`${API_BASE}/api/notes/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             // Store the real DB subjectId for AI calls
@@ -261,7 +262,7 @@ const SubjectPage = () => {
         setLoading(true);
 
         try {
-            const { data } = await axios.post('http://localhost:5001/api/ai/ask', {
+            const { data } = await axios.post(`${API_BASE}/api/ai/ask`, {
                 question: input,
                 sessionId: activeSessionId,
                 clerkId: user?.id,
@@ -282,7 +283,7 @@ const SubjectPage = () => {
         setGeneratingTasks(true);
         setActiveTab('study');
         try {
-            const { data } = await axios.post('http://localhost:5001/api/ai/study-tasks', {
+            const { data } = await axios.post(`${API_BASE}/api/ai/study-tasks`, {
                 subjectId: realSubjectId || subjectId,
                 clerkId: user?.id,
                 subjectName: subject?.name,
@@ -290,7 +291,7 @@ const SubjectPage = () => {
             setStudyTasks(data);
 
             // Refresh history
-            const { data: sSetsData } = await axios.get(`http://localhost:5001/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(subject?.name)}`);
+            const { data: sSetsData } = await axios.get(`${API_BASE}/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(subject?.name)}`);
             if (sSetsData.studySets) {
                 setStudySets(sSetsData.studySets);
             }
