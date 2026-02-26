@@ -287,3 +287,110 @@
     color: var(--text-muted);
     opacity: 0.5;
 }
+
+/* Add Subject Button */
+.btn-add-subject {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 10px;
+    background: rgba(6, 115, 249, 0.12);
+    border: 1px solid rgba(6, 115, 249, 0.35);
+    color: #0673f9;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add-subject:hover {
+    background: rgba(6, 115, 249, 0.22);
+    border-color: #0673f9;
+    transform: translateY(-1px);
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.add-subject-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem 2.25rem;
+    width: 420px;
+    max-width: 90vw;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.modal-header h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    transition: color 0.15s;
+}
+
+.modal-close:hover {
+    color: var(--text-main);
+}
+
+.modal-sub {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+}
+
+.modal-input {
+    width: 100%;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.875rem 1rem;
+    color: var(--text-main);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.modal-input:focus {
+    border-color: var(--primary);
+}
+
+.modal-error {
+    color: #ef4444;
+    font-size: 0.82rem;
+    margin-top: 0.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}

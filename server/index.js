@@ -117,6 +117,35 @@ app.get('/api/subjects', async (req, res) => {
     }
 });
 
+app.post('/api/subjects/add', async (req, res) => {
+    const { clerkId, email, name } = req.body;
+    if (!clerkId || !name) {
+        return res.status(400).json({ error: 'clerkId and name are required' });
+    }
+    try {
+        // Ensure user exists
+        await prisma.user.upsert({
+            where: { clerkId },
+            update: { email },
+            create: { clerkId, email: email || '' },
+        });
+        const existing = await prisma.subject.count({ where: { userId: clerkId } });
+        if (existing >= 3) {
+            return res.status(400).json({ error: 'You already have the maximum of 3 subjects.' });
+        }
+        const duplicate = await prisma.subject.findFirst({ where: { userId: clerkId, name } });
+        if (duplicate) {
+            return res.status(400).json({ error: 'You already have a subject with this name.' });
+        }
+        const subject = await prisma.subject.create({ data: { name, userId: clerkId } });
+        res.json({ subject });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to add subject' });
+    }
+});
+
+
 // --- Helper Functions ---
 async function getNotesForSubject(clerkId, subjectName) {
     console.log(`[DB Lookup] Searching for subject: "${subjectName}" for user: ${clerkId}`);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser, SignOutButton, UserButton } from '@clerk/clerk-react';
 import {
     Plus, FileUp, ExternalLink, LayoutDashboard,
-    BookOpen, LogOut, Loader2, CheckCircle
+    BookOpen, LogOut, Loader2, CheckCircle, X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,12 @@ const Dashboard = () => {
     const [uploadDone, setUploadDone] = useState(false);
     const [loadingSubjects, setLoadingSubjects] = useState(true);
 
+    // Add Subject modal state
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newSubjectName, setNewSubjectName] = useState('');
+    const [addingSubject, setAddingSubject] = useState(false);
+    const [addError, setAddError] = useState('');
+
     useEffect(() => {
         const fetchSubjects = async () => {
             if (!user?.id) return;
@@ -44,6 +50,30 @@ const Dashboard = () => {
         };
         fetchSubjects();
     }, [user, navigate]);
+
+    const handleAddSubject = async () => {
+        const name = newSubjectName.trim();
+        if (!name) { setAddError('Please enter a subject name.'); return; }
+        if (subjects.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+            setAddError('You already have this subject.'); return;
+        }
+        setAddingSubject(true);
+        setAddError('');
+        try {
+            const { data } = await axios.post(`${API_BASE}/api/subjects/add`, {
+                clerkId: user?.id,
+                email: user?.primaryEmailAddress?.emailAddress,
+                name,
+            });
+            setSubjects(prev => [...prev, { ...data.subject, colorIdx: prev.length % 3 }]);
+            setNewSubjectName('');
+            setShowAddModal(false);
+        } catch (err) {
+            setAddError(err.response?.data?.error || 'Failed to add subject.');
+        } finally {
+            setAddingSubject(false);
+        }
+    };
 
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
@@ -127,10 +157,59 @@ const Dashboard = () => {
                         <p>Ready to master your subjects today?</p>
                     </div>
                     <div className="dash-actions">
+                        {subjects.length < 3 && (
+                            <button
+                                className="btn-add-subject"
+                                onClick={() => { setShowAddModal(true); setAddError(''); setNewSubjectName(''); }}
+                            >
+                                <Plus size={16} />
+                                Add Subject
+                            </button>
+                        )}
                         <ThemeToggle />
                         <UserButton afterSignOutUrl="/" />
                     </div>
                 </header>
+
+                {/* Add Subject Modal */}
+                {showAddModal && (
+                    <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.93, y: -12 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="add-subject-modal"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="modal-header">
+                                <h3>Add a New Subject</h3>
+                                <button className="modal-close" onClick={() => setShowAddModal(false)}><X size={18} /></button>
+                            </div>
+                            <p className="modal-sub">You can add up to 3 subjects total. ({3 - subjects.length} slot{3 - subjects.length !== 1 ? 's' : ''} remaining)</p>
+                            <input
+                                type="text"
+                                className="modal-input"
+                                placeholder="e.g. Quantum Physics, Economics..."
+                                value={newSubjectName}
+                                onChange={e => { setNewSubjectName(e.target.value); setAddError(''); }}
+                                onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
+                                autoFocus
+                            />
+                            {addError && <p className="modal-error">{addError}</p>}
+                            <div className="modal-actions">
+                                <button className="btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+                                <button
+                                    className="btn-primary"
+                                    onClick={handleAddSubject}
+                                    disabled={!newSubjectName.trim() || addingSubject}
+                                >
+                                    {addingSubject ? <Loader2 size={16} className="spin" /> : <Plus size={16} />}
+                                    {addingSubject ? 'Adding...' : 'Add Subject'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
 
                 <div className="stats-row">
                     <div className="stat-card">
