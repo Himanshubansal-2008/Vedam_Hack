@@ -5,6 +5,7 @@ import { BookOpen, Sparkles, Target, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import '../styles/Landing.css';
 
 const Landing = () => {
     const { isSignedIn } = useAuth();

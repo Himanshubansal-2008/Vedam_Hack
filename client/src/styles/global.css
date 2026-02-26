@@ -97,6 +97,11 @@ h4 {
     width: 100%;
 }
 
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
 /* ─── Misc ─── */
 .spin {
     animation: spin 1.5s linear infinite;
