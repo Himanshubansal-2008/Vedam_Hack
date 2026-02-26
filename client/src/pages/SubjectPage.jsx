@@ -143,11 +143,7 @@ const SubjectPage = () => {
                         }
                     }
 
-                    // Fetch previous study sets (subject-wide)
-                    const { data: sSetsData } = await axios.get(`${API_BASE}/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(found.name)}`);
-                    if (sSetsData.studySets) {
-                        setStudySets(sSetsData.studySets);
-                    }
+                    // Study sets fetch moved to activeSessionId effect
                 }
             } catch (err) {
                 console.error("Failed to load subject/sessions:", err);
@@ -156,7 +152,6 @@ const SubjectPage = () => {
         if (user?.id) fetchSubjectAndSessions();
     }, [subjectId, user]);
 
-    // Load history when activeSessionId changes
     useEffect(() => {
         const fetchSessionHistory = async () => {
             if (!activeSessionId) return;
@@ -169,15 +164,23 @@ const SubjectPage = () => {
                     })));
                 }
 
-                // Also fetch notes for this session
-                // (Backend modification needed or just reuse notes if global? 
-                // The user said: "if i 5 pdf then it should for that chat only")
-                // So we should fetch notes associated with this session.
+
                 const { data: subData } = await axios.get(`${API_BASE}/api/subjects?clerkId=${user?.id}`);
                 const f = subData.subjects?.find(s => s.id === realSubjectId || s.id === subjectId);
                 if (f) {
                     const sessionNotes = f.notes.filter(n => n.sessionId === activeSessionId);
                     setNotes(sessionNotes);
+                }
+
+                // Fetch previous study sets for THIS chat session
+                const { data: sSetsData } = await axios.get(`${API_BASE}/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(subject?.name || f?.name || '')}&sessionId=${activeSessionId}`);
+                if (sSetsData.studySets && sSetsData.studySets.length > 0) {
+                    setStudySets(sSetsData.studySets);
+                    // Auto-load the most recent study set for this session
+                    setStudyTasks(sSetsData.studySets[0].data);
+                } else {
+                    setStudySets([]);
+                    setStudyTasks(null);
                 }
             } catch (err) {
                 console.error("Failed to load session history:", err);
@@ -272,7 +275,10 @@ const SubjectPage = () => {
             setMessages(prev => [...prev, { role: 'assistant', content: answer }]);
             speakText(answer);
         } catch (err) {
-            const msg = err?.response?.data?.error || 'Server unreachable — ensure the backend is running on port 5001.';
+            let msg = err?.response?.data?.error || 'Server unreachable — ensure the backend is running on port 5001.';
+            if (msg.includes('429') || msg.toLowerCase().includes('quota')) {
+                msg = 'AI Quota Exceeded (Free Tier). Please wait a moment or try again later.';
+            }
             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${msg}` }]);
         } finally {
             setLoading(false);
@@ -287,17 +293,22 @@ const SubjectPage = () => {
                 subjectId: realSubjectId || subjectId,
                 clerkId: user?.id,
                 subjectName: subject?.name,
+                sessionId: activeSessionId,
             });
             setStudyTasks(data);
 
             // Refresh history
-            const { data: sSetsData } = await axios.get(`${API_BASE}/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(subject?.name)}`);
+            const { data: sSetsData } = await axios.get(`${API_BASE}/api/ai/study-sets?clerkId=${user?.id}&subjectName=${encodeURIComponent(subject?.name)}&sessionId=${activeSessionId}`);
             if (sSetsData.studySets) {
                 setStudySets(sSetsData.studySets);
             }
         } catch (err) {
             console.error('Study task generation error:', err);
-            setError(err?.response?.data?.error || 'Failed to generate study tasks. Please ensure you have uploaded notes.');
+            let msg = err?.response?.data?.error || 'Failed to generate study tasks. Please ensure you have uploaded notes.';
+            if (msg.includes('429') || msg.toLowerCase().includes('quota')) {
+                msg = 'AI Quota Exceeded (Free Tier). Please wait a moment or try again later.';
+            }
+            setError(msg);
             setStudyTasks(null);
         } finally {
             setGeneratingTasks(false);
@@ -349,7 +360,12 @@ const SubjectPage = () => {
                     <button
                         className="tab-btn"
                         style={activeTab === 'study' ? { background: 'rgba(255,255,255,0.08)', color: 'white', borderColor: 'var(--glass-border)' } : {}}
-                        onClick={() => setActiveTab('study')}
+                        onClick={() => {
+                            setActiveTab('study');
+                            if (!studyTasks && !generatingTasks) {
+                                generateStudyTasks();
+                            }
+                        }}
                     >
                         Study Mode
                     </button>
@@ -545,7 +561,10 @@ const SubjectPage = () => {
                                         <div className="chat-empty" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                             <Sparkles size={48} style={{ color: accentColor, opacity: 0.4 }} />
                                             <h3>No Study Tasks Found</h3>
-                                            <p>Upload notes and click Study Mode to generate practice questions.</p>
+                                            <p style={{ marginBottom: '1.5rem' }}>Upload notes and click the button below to generate practice questions.</p>
+                                            <button className="btn-primary" onClick={generateStudyTasks}>
+                                                <Sparkles size={18} /> Generate Study Tasks
+                                            </button>
                                         </div>
                                     )}
                                 </div>

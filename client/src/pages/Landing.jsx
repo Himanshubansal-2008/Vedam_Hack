@@ -16,7 +16,7 @@ const Landing = () => {
 
     useEffect(() => {
         if (!isSignedIn || !user) return;
-        // Check if user has set up subjects
+
         const checkUser = async () => {
             try {
                 const { data } = await axios.post(`${API_BASE}/api/users/sync`, {

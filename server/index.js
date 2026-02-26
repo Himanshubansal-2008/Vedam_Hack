@@ -303,7 +303,9 @@ app.post('/api/ai/ask', async (req, res) => {
         const historyContext = history.reverse().map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
 
         const context = notes.map(n => `[File: ${n.filename}]\n${n.content}`).join('\n\n---\n\n');
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const modelName = "gemini-flash-latest";
+        console.log(`[AI Chat] Initializing with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
         const prompt = `You are a supportive, teacher-like study assistant named "Study Copilot". 
 Your goal is to explain concepts clearly and conversationally.
 Answer the student's question using ONLY the provided notes for this specific chat session.
@@ -347,24 +349,52 @@ Include: The Answer (with citations), Confidence: [High/Medium/Low]`;
         res.json({ answer });
     } catch (error) {
         console.error(error);
+        if (error.status === 429 || error.message.includes('429')) {
+            return res.status(429).json({ error: 'AI Quota Exceeded (Free Tier). Please wait a minute or try again later.' });
+        }
         res.status(500).json({ error: 'AI query failed: ' + error.message });
     }
 });
 
+app.get('/api/ai/study-sets', async (req, res) => {
+    const { clerkId, subjectName, sessionId } = req.query;
+    if (!clerkId || !subjectName) {
+        return res.status(400).json({ error: 'clerkId and subjectName required' });
+    }
+    try {
+        const { subject } = await getNotesForSubject(clerkId, subjectName);
+        const whereClause = { subjectId: subject.id };
+        if (sessionId) whereClause.sessionId = sessionId;
+
+        const studySets = await prisma.studySet.findMany({
+            where: whereClause,
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({ studySets });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch study sets' });
+    }
+});
+
 app.post('/api/ai/study-tasks', async (req, res) => {
-    const { clerkId, subjectName } = req.body;
+    const { clerkId, subjectName, sessionId } = req.body;
     if (!clerkId || !subjectName) {
         return res.status(400).json({ error: 'clerkId and subjectName required' });
     }
 
     try {
         const { subject, notes } = await getNotesForSubject(clerkId, subjectName);
-        if (notes.length === 0) {
-            return res.status(400).json({ error: 'No notes found. Upload files first.' });
+        const sessionNotes = sessionId ? notes.filter(n => n.sessionId === sessionId) : notes;
+
+        if (sessionNotes.length === 0) {
+            return res.status(400).json({ error: 'No notes found in this chat session. Please upload a file to this chat first.' });
         }
 
-        const context = notes.map(n => `[File: ${n.filename}]\n${n.content}`).join('\n\n---\n\n');
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const context = sessionNotes.map(n => `[File: ${n.filename}]\n${n.content}`).join('\n\n---\n\n');
+        const modelName = "gemini-flash-latest";
+        console.log(`[AI Study Tasks] Initializing with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
         const prompt = `You are a strict academic examiner. Based ONLY on the provided study notes for the subject "${subject.name}", generate a study task set.
         
 CRITICAL RULES:
@@ -390,22 +420,40 @@ Rules:
 - MCQ answer field = index (0-3) of correct option.
 - Include source citations in short answer model answers.`;
 
+        console.log(`[AI Study Tasks] Prompting model...`);
         const result = await model.generateContent(prompt);
         let text = result.response.text().trim();
-        text = text.replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '');
-        const tasks = JSON.parse(text);
+        console.log(`[AI Study Tasks] Raw response:`, text);
 
+        text = text.replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '');
+
+        let tasks;
+        try {
+            tasks = JSON.parse(text);
+        } catch (parseErr) {
+            console.error(`[AI Study Tasks] JSON Parse Error:`, parseErr.message);
+            console.error(`[AI Study Tasks] Failed text:`, text);
+            throw new Error('AI returned invalid JSON. Please try again.');
+        }
+
+        console.log(`[AI Study Tasks] Persisting study set...`);
         // Persist the generated study set
         await prisma.studySet.create({
             data: {
                 subjectId: subject.id,
+                sessionId: sessionId || null,
                 data: tasks
             }
         });
 
         res.json(tasks);
     } catch (error) {
-        console.error(error);
+        console.error(`[AI Study Tasks] CRITICAL ERROR:`, error);
+
+        if (error.status === 429 || error.message.includes('429')) {
+            return res.status(429).json({ error: 'AI Quota Exceeded (Free Tier). Please wait a minute or try again later.' });
+        }
+
         res.status(500).json({ error: 'Failed to generate study tasks: ' + error.message });
     }
 });
